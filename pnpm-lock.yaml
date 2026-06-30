@@ -94,7 +94,11 @@ importers:
         specifier: ^5.11.1
         version: 5.11.1
 
-  packages/core: {}
+  packages/core:
+    dependencies:
+      '@opsly/db':
+        specifier: workspace:*
+        version: link:../db
 
   packages/db:
     dependencies:
