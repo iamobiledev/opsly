@@ -4,17 +4,35 @@ import { requireUser } from "../../../../lib/auth";
 export default async function SlackIntegrationPage() {
   const user = await requireUser();
   const organizationId = user.memberships[0]?.organizationId;
-  const bindings = await prisma.slackChannelBinding.findMany({ where: { organizationId }, include: { service: true } });
+  const [bindings, installations] = await Promise.all([
+    prisma.slackChannelBinding.findMany({ where: { organizationId }, include: { service: true } }),
+    prisma.slackInstallation.findMany({ where: { organizationId }, orderBy: { createdAt: "desc" } })
+  ]);
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
 
   return (
     <div>
       <h1 className="text-4xl font-bold">Slack integration</h1>
       <p className="mt-2 text-slate-400">Configure Slack app events, slash commands, and interactive incident actions.</p>
+      <a href="/api/slack/install" className="mt-6 inline-block rounded-xl bg-cyan-400 px-4 py-2 font-semibold text-slate-950 hover:bg-cyan-300">
+        Install Slack app
+      </a>
       <div className="mt-8 grid gap-4 lg:grid-cols-3">
         <Endpoint label="Events" value={`${appUrl}/api/slack/events`} />
         <Endpoint label="Interactivity" value={`${appUrl}/api/slack/interactions`} />
         <Endpoint label="Slash command" value={`${appUrl}/api/slack/commands`} />
+      </div>
+      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5">
+        <h2 className="text-xl font-semibold">Installed workspaces</h2>
+        <div className="mt-4 divide-y divide-white/10">
+          {installations.map((installation) => (
+            <div key={installation.id} className="py-4">
+              <p className="font-medium">{installation.teamName}</p>
+              <p className="text-sm text-slate-400">{installation.teamId} · bot {installation.botUserId ?? "unknown"} · installed {installation.createdAt.toLocaleString()}</p>
+            </div>
+          ))}
+          {installations.length === 0 ? <p className="text-sm text-slate-400">No Slack workspace installed yet.</p> : null}
+        </div>
       </div>
       <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5">
         <h2 className="text-xl font-semibold">Channel bindings</h2>

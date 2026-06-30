@@ -34,6 +34,30 @@ Minimum useful bot scopes:
 
 Invite the bot to `#frontend-alerts` and `#backend-alerts`.
 
+## OAuth installation
+
+Opsly exposes an admin-only install route:
+
+```text
+https://<opsly-host>/api/slack/install
+```
+
+The route redirects to Slack OAuth using these scopes:
+
+- `chat:write`
+- `commands`
+- `channels:read`
+- `groups:read`
+- `users:read`
+
+Slack redirects back to:
+
+```text
+https://<opsly-host>/api/slack/oauth/callback
+```
+
+The callback stores the bot token encrypted in `SlackInstallation`. The Slack signing secret is still read from `SLACK_SIGNING_SECRET`.
+
 ## Supported commands
 
 - `/opsly incidents`
