@@ -16,6 +16,9 @@
     "@opsly/core": "workspace:*",
     "@opsly/db": "workspace:*",
     "@opsly/integrations": "workspace:*",
+    "bcryptjs": "^3.0.3",
+    "bullmq": "^5.79.2",
+    "ioredis": "^5.11.1",
     "next": "^16.2.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"

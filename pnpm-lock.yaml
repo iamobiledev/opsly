@@ -44,6 +44,15 @@ importers:
       '@opsly/integrations':
         specifier: workspace:*
         version: link:../../packages/integrations
+      bcryptjs:
+        specifier: ^3.0.3
+        version: 3.0.3
+      bullmq:
+        specifier: ^5.79.2
+        version: 5.79.2
+      ioredis:
+        specifier: ^5.11.1
+        version: 5.11.1
       next:
         specifier: ^16.2.9
         version: 16.2.9(@playwright/test@1.61.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
