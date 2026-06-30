@@ -10,6 +10,7 @@ const nav = [
   ["Escalation", "/escalation-policies"],
   ["Teams", "/teams"],
   ["Integrations", "/integrations"],
+  ["Settings", "/settings"],
   ["Audit", "/audit"]
 ];
 
