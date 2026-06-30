@@ -7,7 +7,8 @@ import {
   addNoteAction,
   assignToMeAction,
   escalateIncidentAction,
-  resolveIncidentAction
+  resolveIncidentAction,
+  savePostmortemAction
 } from "../../../../lib/actions/incidents";
 import { requireUser } from "../../../../lib/auth";
 
@@ -20,7 +21,8 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
       service: true,
       alerts: { orderBy: { createdAt: "desc" } },
       timeline: { orderBy: { createdAt: "desc" } },
-      notes: { include: { author: true }, orderBy: { createdAt: "desc" } }
+      notes: { include: { author: true }, orderBy: { createdAt: "desc" } },
+      postmortem: true
     }
   });
 
@@ -103,9 +105,38 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
               {incident.notes.length === 0 ? <p className="text-sm text-slate-400">No notes yet.</p> : null}
             </div>
           </Panel>
+          <Panel title="Postmortem">
+            <form action={savePostmortemAction} className="space-y-3">
+              <input type="hidden" name="incidentId" value={incident.id} />
+              <select name="status" defaultValue={incident.postmortem?.status ?? "draft"} className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2">
+                <option value="draft">Draft</option>
+                <option value="review">In review</option>
+                <option value="published">Published</option>
+              </select>
+              <PostmortemField name="summary" label="Summary" defaultValue={incident.postmortem?.summary} />
+              <PostmortemField name="impact" label="Impact" defaultValue={incident.postmortem?.impact} />
+              <PostmortemField name="rootCause" label="Root cause" defaultValue={incident.postmortem?.rootCause} />
+              <PostmortemField name="resolution" label="Resolution" defaultValue={incident.postmortem?.resolution} />
+              <button className="rounded-xl bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950">Save postmortem</button>
+            </form>
+          </Panel>
         </div>
       </section>
     </div>
+  );
+}
+
+function PostmortemField({ label, name, defaultValue }: { label: string; name: string; defaultValue?: string | null }) {
+  return (
+    <label className="block text-sm text-slate-300">
+      {label}
+      <textarea
+        name={name}
+        rows={4}
+        defaultValue={defaultValue ?? ""}
+        className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 p-3 text-sm outline-none ring-cyan-400/40 focus:ring"
+      />
+    </label>
   );
 }
 
