@@ -1,0 +1,36 @@
+{
+  "name": "opsly",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PagerDuty-style incident response platform for Sentry, Laravel Nightwatch, and Slack.",
+  "packageManager": "pnpm@10.33.3",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @opsly/web --filter @opsly/worker dev",
+    "dev:web": "pnpm --filter @opsly/web dev",
+    "dev:worker": "pnpm --filter @opsly/worker dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter @opsly/web test:e2e",
+    "db:generate": "pnpm --filter @opsly/db db:generate",
+    "db:migrate": "pnpm --filter @opsly/db db:migrate",
+    "db:seed": "pnpm --filter @opsly/db db:seed",
+    "format": "prettier --write ."
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.0.1",
+    "eslint": "^10.6.0",
+    "prettier": "^3.9.4",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.62.1",
+    "vitest": "^4.1.9"
+  }
+}

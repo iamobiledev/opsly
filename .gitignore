@@ -1,0 +1,16 @@
+node_modules
+.pnpm-store
+.turbo
+.next
+dist
+build
+coverage
+playwright-report
+test-results
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+prisma/dev.db
+generated
