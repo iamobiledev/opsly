@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { acknowledgeIncident, escalateIncident, resolveIncident } from "@opsly/core";
 import { verifySlackRequest } from "@opsly/integrations";
+import { enqueueSlackUpdate } from "../../../../lib/queues";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
   } else if (operation === "escalate") {
     await escalateIncident(incidentId, actor);
   }
+  await enqueueSlackUpdate(incidentId);
 
   return NextResponse.json({ text: `Opsly ${operation} recorded.` });
 }

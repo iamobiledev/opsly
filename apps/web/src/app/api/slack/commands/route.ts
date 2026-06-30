@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { acknowledgeIncident, createOrUpdateIncidentFromSignal, resolveIncident, escalateIncident, resolveOnCall } from "@opsly/core";
 import { helpText, parseOpslyCommand, verifySlackRequest } from "@opsly/integrations";
 import { prisma } from "@opsly/db";
+import { enqueueSlackUpdate } from "../../../../lib/queues";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -103,6 +104,7 @@ export async function POST(request: Request) {
     } else {
       await escalateIncident(incident.id, actor);
     }
+    await enqueueSlackUpdate(incident.id);
     return slackText(`Incident #${incident.number} ${command.type} recorded.`);
   }
 

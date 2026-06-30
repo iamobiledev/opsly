@@ -7,6 +7,8 @@ export const connection = {
 export const inboundQueue = new Queue("inbound-events", { connection });
 export const notificationQueue = new Queue("notifications", { connection });
 export const escalationQueue = new Queue("escalations", { connection });
+export const slackUpdateQueue = new Queue("slack-updates", { connection });
+export const deadLetterQueue = new Queue("dead-letter", { connection });
 
 export interface ProcessInboundEventJob {
   inboundEventId: string;
@@ -17,5 +19,9 @@ export interface SendNotificationJob {
 }
 
 export interface EscalateIncidentJob {
+  incidentId: string;
+}
+
+export interface UpdateSlackMessageJob {
   incidentId: string;
 }
