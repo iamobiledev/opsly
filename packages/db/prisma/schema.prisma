@@ -1,0 +1,600 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MembershipRole {
+  owner
+  admin
+  responder
+  viewer
+}
+
+enum IncidentStatus {
+  triggered
+  acknowledged
+  resolved
+}
+
+enum Severity {
+  low
+  warning
+  error
+  critical
+}
+
+enum Provider {
+  sentry
+  nightwatch
+  slack
+  manual
+  api
+}
+
+enum IntegrationType {
+  sentry
+  nightwatch
+  slack
+  generic_webhook
+}
+
+enum InboundEventStatus {
+  received
+  processed
+  duplicate
+  rejected
+  failed
+}
+
+enum NotificationStatus {
+  pending
+  sent
+  failed
+  skipped
+}
+
+model Organization {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  memberships           Membership[]
+  teams                 Team[]
+  services              Service[]
+  escalationPolicies    EscalationPolicy[]
+  schedules             Schedule[]
+  integrations          Integration[]
+  inboundEvents         InboundEvent[]
+  incidents             Incident[]
+  slackInstallations    SlackInstallation[]
+  slackChannelBindings  SlackChannelBinding[]
+  auditLogs             AuditLog[]
+  apiTokens             ApiToken[]
+}
+
+model User {
+  id                 String                 @id @default(cuid())
+  email              String                 @unique
+  name               String
+  passwordHash       String
+  timezone           String                 @default("America/New_York")
+  slackUserId        String?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  lastLoginAt        DateTime?
+  sessions           Session[]
+  memberships        Membership[]
+  teamMemberships    TeamMembership[]
+  contactMethods     ContactMethod[]
+  notificationRules  NotificationRule[]
+  scheduleParticipants ScheduleParticipant[]
+  scheduleOverrides  ScheduleOverride[]
+  incidentNotes      IncidentNote[]
+  subscriptions      IncidentSubscription[]
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  userId      String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Membership {
+  id              String          @id @default(cuid())
+  organizationId  String
+  userId          String
+  role            MembershipRole  @default(responder)
+  createdAt       DateTime        @default(now())
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model Team {
+  id              String           @id @default(cuid())
+  organizationId  String
+  name            String
+  slug            String
+  description     String?
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships     TeamMembership[]
+  services        Service[]
+  schedules       Schedule[]
+  escalationPolicies EscalationPolicy[]
+
+  @@unique([organizationId, slug])
+}
+
+model TeamMembership {
+  id        String          @id @default(cuid())
+  teamId    String
+  userId    String
+  role      MembershipRole  @default(responder)
+  team      Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+}
+
+model ContactMethod {
+  id              String              @id @default(cuid())
+  userId          String
+  type            String
+  label           String
+  valueEncrypted  String
+  verifiedAt      DateTime?
+  enabled         Boolean             @default(true)
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationRules NotificationRule[]
+
+  @@index([userId])
+}
+
+model NotificationRule {
+  id              String         @id @default(cuid())
+  userId          String
+  contactMethodId String
+  delayMinutes    Int            @default(0)
+  urgency         Severity       @default(error)
+  enabled         Boolean        @default(true)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contactMethod   ContactMethod  @relation(fields: [contactMethodId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Schedule {
+  id              String             @id @default(cuid())
+  organizationId  String
+  teamId          String?
+  name            String
+  timezone        String             @default("America/New_York")
+  description     String?
+  organization    Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team            Team?              @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  layers          ScheduleLayer[]
+  overrides       ScheduleOverride[]
+
+  @@unique([organizationId, name])
+  @@index([teamId])
+}
+
+model ScheduleLayer {
+  id                    String                 @id @default(cuid())
+  scheduleId            String
+  name                  String
+  startsAt              DateTime
+  endsAt                DateTime?
+  rotationType          String                 @default("weekly")
+  rotationLengthMinutes Int                    @default(10080)
+  handoffTime           String                 @default("09:00")
+  restrictionsJson      Json?
+  schedule              Schedule               @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  participants          ScheduleParticipant[]
+
+  @@index([scheduleId])
+}
+
+model ScheduleParticipant {
+  id        String        @id @default(cuid())
+  layerId   String
+  userId    String
+  position  Int
+  layer     ScheduleLayer @relation(fields: [layerId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([layerId, userId])
+  @@index([userId])
+}
+
+model ScheduleOverride {
+  id          String    @id @default(cuid())
+  scheduleId  String
+  userId      String
+  startsAt    DateTime
+  endsAt      DateTime
+  reason      String?
+  schedule    Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId, startsAt, endsAt])
+  @@index([userId])
+}
+
+model EscalationPolicy {
+  id              String            @id @default(cuid())
+  organizationId  String
+  teamId          String?
+  name            String
+  repeatCount     Int               @default(0)
+  description     String?
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team            Team?             @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  rules           EscalationRule[]
+  services        Service[]
+  escalationStates EscalationState[]
+
+  @@unique([organizationId, name])
+  @@index([teamId])
+}
+
+model EscalationRule {
+  id          String            @id @default(cuid())
+  policyId    String
+  level       Int
+  delayMinutes Int              @default(0)
+  targetType  String
+  targetId    String
+  policy      EscalationPolicy  @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, level])
+}
+
+model Service {
+  id                  String                @id @default(cuid())
+  organizationId      String
+  teamId              String?
+  name                String
+  slug                String
+  description         String?
+  escalationPolicyId  String?
+  defaultUrgency      Severity              @default(error)
+  status              String                @default("operational")
+  organization        Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team                Team?                 @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  escalationPolicy    EscalationPolicy?     @relation(fields: [escalationPolicyId], references: [id], onDelete: SetNull)
+  integrations        Integration[]
+  incidents           Incident[]
+  maintenanceWindows  MaintenanceWindow[]
+  suppressionRules    SuppressionRule[]
+  slackChannelBindings SlackChannelBinding[]
+  dependencies        ServiceDependency[]   @relation("ServiceDependencyService")
+  dependents          ServiceDependency[]   @relation("ServiceDependencyDependsOn")
+
+  @@unique([organizationId, slug])
+  @@index([teamId])
+}
+
+model ServiceDependency {
+  id                  String   @id @default(cuid())
+  serviceId           String
+  dependsOnServiceId  String
+  kind                String   @default("runtime")
+  service             Service  @relation("ServiceDependencyService", fields: [serviceId], references: [id], onDelete: Cascade)
+  dependsOnService    Service  @relation("ServiceDependencyDependsOn", fields: [dependsOnServiceId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, dependsOnServiceId])
+}
+
+model Integration {
+  id              String        @id @default(cuid())
+  organizationId  String
+  serviceId       String?
+  type            IntegrationType
+  name            String
+  routingKey      String        @unique
+  secretEncrypted String?
+  configJson      Json?
+  enabled         Boolean       @default(true)
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  service         Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  routingRules    RoutingRule[]
+  inboundEvents   InboundEvent[]
+
+  @@index([organizationId, type])
+  @@index([serviceId])
+}
+
+model RoutingRule {
+  id            String       @id @default(cuid())
+  integrationId String
+  order         Int
+  name          String
+  conditionsJson Json?
+  actionsJson   Json?
+  enabled       Boolean      @default(true)
+  integration   Integration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, order])
+}
+
+model MaintenanceWindow {
+  id          String    @id @default(cuid())
+  serviceId   String
+  startsAt    DateTime
+  endsAt      DateTime
+  reason      String
+  createdById String?
+  service     Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId, startsAt, endsAt])
+}
+
+model SuppressionRule {
+  id             String    @id @default(cuid())
+  serviceId      String
+  name           String
+  conditionsJson Json?
+  startsAt       DateTime?
+  endsAt         DateTime?
+  enabled        Boolean   @default(true)
+  service        Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId, enabled])
+}
+
+model InboundEvent {
+  id                  String             @id @default(cuid())
+  organizationId      String
+  integrationId       String?
+  provider            Provider
+  providerEventId     String?
+  providerIssueId     String?
+  headersJson         Json?
+  payloadRedactedJson Json?
+  payloadHash         String
+  receivedAt          DateTime           @default(now())
+  processedAt         DateTime?
+  status              InboundEventStatus @default(received)
+  error               String?
+  organization        Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  integration         Integration?       @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+  alerts              Alert[]
+
+  @@unique([provider, payloadHash])
+  @@index([provider, providerEventId])
+  @@index([provider, providerIssueId])
+  @@index([organizationId, receivedAt])
+}
+
+model Incident {
+  id                      String                    @id @default(cuid())
+  organizationId          String
+  serviceId               String
+  number                  Int
+  title                   String
+  description             String?
+  status                  IncidentStatus            @default(triggered)
+  severity                Severity                  @default(error)
+  urgency                 Severity                  @default(error)
+  sourceProvider          Provider
+  dedupeKey               String
+  sourceUrl               String?
+  currentEscalationLevel  Int                       @default(0)
+  assignedToUserId        String?
+  acknowledgedAt          DateTime?
+  acknowledgedById        String?
+  resolvedAt              DateTime?
+  resolvedById            String?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  organization            Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  service                 Service                   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  alerts                  Alert[]
+  timeline                IncidentTimelineEntry[]
+  notes                   IncidentNote[]
+  subscriptions           IncidentSubscription[]
+  postmortem              IncidentPostmortem?
+  notificationAttempts    NotificationAttempt[]
+  escalationState         EscalationState?
+  slackMessages           SlackMessage[]
+
+  @@unique([organizationId, number])
+  @@index([serviceId, dedupeKey, status])
+  @@index([organizationId, status, createdAt])
+}
+
+model Alert {
+  id              String        @id @default(cuid())
+  incidentId      String
+  inboundEventId  String?
+  title           String
+  message         String
+  severity        Severity
+  provider        Provider
+  providerIssueId String?
+  sourceUrl       String?
+  dedupeKey       String
+  createdAt       DateTime      @default(now())
+  incident        Incident      @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  inboundEvent    InboundEvent? @relation(fields: [inboundEventId], references: [id], onDelete: SetNull)
+
+  @@index([incidentId, createdAt])
+  @@index([provider, providerIssueId])
+}
+
+model IncidentTimelineEntry {
+  id            String    @id @default(cuid())
+  incidentId    String
+  actorType     String
+  actorUserId   String?
+  action        String
+  message       String
+  metadataJson  Json?
+  createdAt     DateTime  @default(now())
+  incident      Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, createdAt])
+}
+
+model IncidentNote {
+  id          String    @id @default(cuid())
+  incidentId  String
+  authorId    String
+  body        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  incident    Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+}
+
+model IncidentSubscription {
+  id          String    @id @default(cuid())
+  incidentId  String
+  userId      String
+  createdAt   DateTime  @default(now())
+  incident    Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([incidentId, userId])
+}
+
+model IncidentPostmortem {
+  id          String    @id @default(cuid())
+  incidentId  String    @unique
+  status      String    @default("draft")
+  summary     String?
+  impact      String?
+  rootCause   String?
+  resolution  String?
+  followUpsJson Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  incident    Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+}
+
+model NotificationAttempt {
+  id                String              @id @default(cuid())
+  incidentId        String
+  userId            String?
+  channel           String
+  destination       String
+  status            NotificationStatus  @default(pending)
+  attempt           Int                 @default(1)
+  providerMessageId String?
+  error             String?
+  createdAt         DateTime            @default(now())
+  sentAt            DateTime?
+  incident          Incident            @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, status])
+  @@index([userId])
+}
+
+model EscalationState {
+  id                String            @id @default(cuid())
+  incidentId        String            @unique
+  policyId          String
+  currentLevel      Int               @default(0)
+  nextEscalationAt  DateTime?
+  repeatCount       Int               @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  incident          Incident          @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  policy            EscalationPolicy  @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([nextEscalationAt])
+}
+
+model SlackInstallation {
+  id                    String        @id @default(cuid())
+  organizationId        String
+  teamId                String
+  teamName              String
+  botUserId             String?
+  botTokenEncrypted     String
+  signingSecretEncrypted String
+  createdAt             DateTime      @default(now())
+  organization          Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, teamId])
+}
+
+model SlackChannelBinding {
+  id              String        @id @default(cuid())
+  organizationId  String
+  serviceId       String?
+  slackTeamId     String?
+  channelId       String
+  channelName     String
+  mode            String        @default("alerts")
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  service         Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, channelId, serviceId])
+  @@index([serviceId])
+}
+
+model SlackMessage {
+  id          String    @id @default(cuid())
+  incidentId  String
+  channelId   String
+  messageTs   String
+  threadTs    String?
+  kind        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  incident    Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, messageTs])
+  @@index([incidentId])
+}
+
+model AuditLog {
+  id              String        @id @default(cuid())
+  organizationId  String
+  actorUserId     String?
+  actorType       String
+  action          String
+  targetType      String
+  targetId        String?
+  metadataJson    Json?
+  ip              String?
+  userAgent       String?
+  createdAt       DateTime      @default(now())
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([targetType, targetId])
+}
+
+model ApiToken {
+  id              String        @id @default(cuid())
+  organizationId  String
+  name            String
+  tokenHash       String        @unique
+  scopes          String
+  lastUsedAt      DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime      @default(now())
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
