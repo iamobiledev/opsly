@@ -51,6 +51,15 @@ export async function requireUser() {
   return user;
 }
 
+export async function requireAdmin() {
+  const user = await requireUser();
+  const role = user.memberships[0]?.role;
+  if (role !== "owner" && role !== "admin") {
+    throw new Error("Admin role required");
+  }
+  return user;
+}
+
 export async function createBootstrapUser({
   organizationName,
   name,

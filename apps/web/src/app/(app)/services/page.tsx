@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@opsly/db";
+import { createServiceAction } from "../../../lib/actions/admin";
 import { requireUser } from "../../../lib/auth";
 
 export default async function ServicesPage() {
@@ -15,11 +16,35 @@ export default async function ServicesPage() {
     },
     orderBy: { name: "asc" }
   });
+  const [teams, policies] = await Promise.all([
+    prisma.team.findMany({ where: { organizationId }, orderBy: { name: "asc" } }),
+    prisma.escalationPolicy.findMany({ where: { organizationId }, orderBy: { name: "asc" } })
+  ]);
 
   return (
     <div>
       <h1 className="text-4xl font-bold">Services</h1>
       <p className="mt-2 text-slate-400">Own alert routing, escalation policies, and Slack destinations per service.</p>
+      <form action={createServiceAction} className="mt-8 grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 lg:grid-cols-3">
+        <input name="name" required placeholder="Service name" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+        <input name="slug" placeholder="service-slug" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+        <select name="teamId" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2">
+          <option value="">No team</option>
+          {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+        </select>
+        <select name="escalationPolicyId" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2">
+          <option value="">No policy</option>
+          {policies.map((policy) => <option key={policy.id} value={policy.id}>{policy.name}</option>)}
+        </select>
+        <select name="defaultUrgency" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2">
+          <option value="warning">Warning</option>
+          <option value="error">Error</option>
+          <option value="critical">Critical</option>
+          <option value="low">Low</option>
+        </select>
+        <input name="description" placeholder="Description" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+        <button className="rounded-xl bg-cyan-400 px-4 py-2 font-semibold text-slate-950 lg:col-span-3">Save service</button>
+      </form>
       <div className="mt-8 grid gap-5 lg:grid-cols-2">
         {services.map((service) => (
           <Link key={service.id} href={`/services/${service.id}`} className="rounded-2xl border border-white/10 bg-white/5 p-6 hover:bg-white/10">

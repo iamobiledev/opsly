@@ -1,4 +1,5 @@
 import { prisma } from "@opsly/db";
+import { createTeamAction } from "../../../lib/actions/admin";
 import { requireUser } from "../../../lib/auth";
 
 export default async function TeamsPage() {
@@ -18,6 +19,12 @@ export default async function TeamsPage() {
     <div>
       <h1 className="text-4xl font-bold">Teams</h1>
       <p className="mt-2 text-slate-400">Owners, responders, services, and rotations.</p>
+      <form action={createTeamAction} className="mt-8 grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 lg:grid-cols-[1fr_1fr_2fr_auto]">
+        <input name="name" required placeholder="Team name" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+        <input name="slug" placeholder="team-slug" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+        <input name="description" placeholder="Description" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+        <button className="rounded-xl bg-cyan-400 px-4 py-2 font-semibold text-slate-950">Save team</button>
+      </form>
       <div className="mt-8 grid gap-5 lg:grid-cols-2">
         {teams.map((team) => (
           <div key={team.id} className="rounded-2xl border border-white/10 bg-white/5 p-6">

@@ -9,6 +9,7 @@ const nav = [
   ["Schedules", "/schedules"],
   ["Escalation", "/escalation-policies"],
   ["Teams", "/teams"],
+  ["Users", "/users"],
   ["Integrations", "/integrations"],
   ["Settings", "/settings"],
   ["Audit", "/audit"]
