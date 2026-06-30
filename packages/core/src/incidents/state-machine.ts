@@ -6,6 +6,7 @@ export interface IncidentSnapshot {
   severity: Severity;
   urgency: Severity;
   currentEscalationLevel: number;
+  assignedToUserId?: string | null;
   acknowledgedAt?: Date | null;
   acknowledgedById?: string | null;
   resolvedAt?: Date | null;
@@ -18,7 +19,8 @@ export type IncidentCommand =
   | { type: "acknowledge" }
   | { type: "resolve" }
   | { type: "reopen"; severity?: Severity; urgency?: Severity }
-  | { type: "escalate" };
+  | { type: "escalate" }
+  | { type: "assign"; userId: string; userName?: string };
 
 export interface IncidentTransition {
   incident: IncidentSnapshot;
@@ -134,6 +136,23 @@ export function transitionIncident(
           action: "incident.escalated",
           message: `Incident escalated to level ${current.currentEscalationLevel + 1}`,
           actor
+        }
+      };
+
+    case "assign":
+      if (current.status === "resolved") {
+        throw new Error("Cannot assign a resolved incident");
+      }
+      return {
+        incident: {
+          ...current,
+          assignedToUserId: command.userId
+        },
+        timeline: {
+          action: "incident.assigned",
+          message: `Incident assigned to ${command.userName ?? command.userId}`,
+          actor,
+          metadata: { assignedToUserId: command.userId }
         }
       };
   }

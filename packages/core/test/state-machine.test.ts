@@ -57,4 +57,20 @@ describe("incident state machine", () => {
       )
     ).toThrow("Cannot escalate");
   });
+
+  it("assigns incidents to responders", () => {
+    const assigned = transitionIncident(
+      {
+        status: "triggered",
+        severity: "error",
+        urgency: "error",
+        currentEscalationLevel: 0
+      },
+      { type: "assign", userId: "user_2", userName: "Ethan" },
+      { type: "user", id: "user_1", displayName: "Allen" }
+    );
+
+    expect(assigned.incident.assignedToUserId).toBe("user_2");
+    expect(assigned.timeline.action).toBe("incident.assigned");
+  });
 });

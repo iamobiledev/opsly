@@ -5,6 +5,7 @@ import { SeverityBadge, StatusBadge } from "../../../../components/badges";
 import {
   ackIncidentAction,
   addNoteAction,
+  assignToMeAction,
   escalateIncidentAction,
   resolveIncidentAction
 } from "../../../../lib/actions/incidents";
@@ -43,6 +44,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
         </div>
         <div className="flex flex-wrap gap-3">
           <IncidentButton action={ackIncidentAction} incidentId={incident.id} label="Acknowledge" disabled={incident.status === "resolved"} />
+          <IncidentButton action={assignToMeAction} incidentId={incident.id} label="Assign to me" disabled={incident.status === "resolved"} />
           <IncidentButton action={resolveIncidentAction} incidentId={incident.id} label="Resolve" disabled={incident.status === "resolved"} />
           <IncidentButton action={escalateIncidentAction} incidentId={incident.id} label="Escalate" disabled={incident.status === "resolved"} danger />
         </div>

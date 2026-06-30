@@ -156,6 +156,26 @@ export async function escalateIncident(incidentId: string, actor: Actor) {
   });
 }
 
+export async function assignIncident(incidentId: string, assigneeUserId: string, actor: Actor) {
+  const [incident, assignee] = await Promise.all([
+    prisma.incident.findUniqueOrThrow({ where: { id: incidentId } }),
+    prisma.user.findUniqueOrThrow({ where: { id: assigneeUserId } })
+  ]);
+  const transition = transitionIncident(
+    toSnapshot(incident),
+    { type: "assign", userId: assignee.id, userName: assignee.name },
+    actor
+  );
+  return prisma.incident.update({
+    where: { id: incidentId },
+    data: {
+      assignedToUserId: transition.incident.assignedToUserId,
+      timeline: { create: timelineData(transition) }
+    },
+    include: { timeline: true, service: true }
+  });
+}
+
 export async function addIncidentNote(incidentId: string, authorId: string, body: string) {
   return prisma.incidentNote.create({
     data: { incidentId, authorId, body }
@@ -200,6 +220,7 @@ function toSnapshot(incident: {
   severity: "low" | "warning" | "error" | "critical";
   urgency: "low" | "warning" | "error" | "critical";
   currentEscalationLevel: number;
+  assignedToUserId: string | null;
   acknowledgedAt: Date | null;
   acknowledgedById: string | null;
   resolvedAt: Date | null;
@@ -211,6 +232,7 @@ function toSnapshot(incident: {
     severity: incident.severity,
     urgency: incident.urgency,
     currentEscalationLevel: incident.currentEscalationLevel,
+    assignedToUserId: incident.assignedToUserId,
     acknowledgedAt: incident.acknowledgedAt,
     acknowledgedById: incident.acknowledgedById,
     resolvedAt: incident.resolvedAt,
