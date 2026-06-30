@@ -1,13 +1,18 @@
 import { Queue } from "bullmq";
 
-export const inboundQueue = new Queue("inbound-events", {
-  connection: {
-    url: process.env.REDIS_URL ?? "redis://localhost:6379"
-  }
-});
+let inboundQueue: Queue | undefined;
+
+function getInboundQueue() {
+  inboundQueue ??= new Queue("inbound-events", {
+    connection: {
+      url: process.env.REDIS_URL ?? "redis://localhost:6379"
+    }
+  });
+  return inboundQueue;
+}
 
 export async function enqueueInboundEvent(inboundEventId: string) {
-  await inboundQueue.add(
+  await getInboundQueue().add(
     "process-inbound-event",
     { inboundEventId },
     {

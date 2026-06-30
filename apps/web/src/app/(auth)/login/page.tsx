@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, hasAnyUsers } from "../../../lib/auth";
 import { loginAction } from "../../../lib/actions/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
   if (!(await hasAnyUsers())) {
     redirect("/setup");
