@@ -1,4 +1,5 @@
 import { prisma } from "@opsly/db";
+import { triggerIntegrationTestIncidentAction } from "../../../../lib/actions/integrations";
 import { requireUser } from "../../../../lib/auth";
 
 export default async function SentryIntegrationPage() {
@@ -13,6 +14,14 @@ export default async function SentryIntegrationPage() {
       <h1 className="text-4xl font-bold">Sentry integration</h1>
       <p className="mt-2 text-slate-400">Use this endpoint for the ROWS Sentry org and `rows-frontend-dev` project.</p>
       <SetupBox webhookUrl={webhookUrl} secret="SENTRY_WEBHOOK_SECRET" />
+      {integration ? (
+        <form action={triggerIntegrationTestIncidentAction} className="mt-5">
+          <input type="hidden" name="integrationId" value={integration.id} />
+          <button className="rounded-xl bg-cyan-400 px-4 py-2 font-semibold text-slate-950 hover:bg-cyan-300">
+            Trigger test Sentry incident
+          </button>
+        </form>
+      ) : null}
       <ol className="mt-8 list-decimal space-y-3 pl-5 text-slate-300">
         <li>Create or edit the Sentry internal integration/service hook in org `rows`.</li>
         <li>Subscribe to issue and alert events for project `rows-frontend-dev`.</li>

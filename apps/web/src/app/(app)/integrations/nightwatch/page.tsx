@@ -1,4 +1,5 @@
 import { prisma } from "@opsly/db";
+import { triggerIntegrationTestIncidentAction } from "../../../../lib/actions/integrations";
 import { requireUser } from "../../../../lib/auth";
 
 export default async function NightwatchIntegrationPage() {
@@ -18,6 +19,14 @@ export default async function NightwatchIntegrationPage() {
         <p className="mt-4 text-sm text-slate-400">Secret env var</p>
         <code className="mt-2 block rounded-xl bg-slate-900 p-4 text-cyan-200">NIGHTWATCH_WEBHOOK_SECRET</code>
       </div>
+      {integration ? (
+        <form action={triggerIntegrationTestIncidentAction} className="mt-5">
+          <input type="hidden" name="integrationId" value={integration.id} />
+          <button className="rounded-xl bg-cyan-400 px-4 py-2 font-semibold text-slate-950 hover:bg-cyan-300">
+            Trigger test Nightwatch incident
+          </button>
+        </form>
+      ) : null}
       <ol className="mt-8 list-decimal space-y-3 pl-5 text-slate-300">
         <li>Open Nightwatch settings for organization `9f2c42a7-1b3e-4886-acc0-275ead62523f`.</li>
         <li>Select application `Rows Backend` / `9f2c42c9-d339-4b43-8eac-00e04871c794`.</li>
