@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@opsly/db";
 import { resolveOnCall } from "@opsly/core";
 import { requireUser } from "../../../lib/auth";
@@ -38,7 +39,7 @@ export default async function SchedulesPage() {
           });
 
           return (
-            <div key={schedule.id} className="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <Link key={schedule.id} href={`/schedules/${schedule.id}`} className="rounded-2xl border border-white/10 bg-white/5 p-6 hover:bg-white/10">
               <h2 className="text-2xl font-semibold">{schedule.name}</h2>
               <p className="mt-2 text-sm text-slate-400">{schedule.team?.name ?? "No team"} · {schedule.timezone}</p>
               <div className="mt-5 rounded-xl bg-slate-900/80 p-4">
@@ -46,7 +47,7 @@ export default async function SchedulesPage() {
                 <p className="mt-2 text-lg font-semibold">{onCall.map((id) => usersById.get(id) ?? id).join(", ") || "No responder"}</p>
               </div>
               <p className="mt-4 text-sm text-slate-400">{schedule.layers.length} layers · {schedule.overrides.length} overrides</p>
-            </div>
+            </Link>
           );
         })}
       </div>
