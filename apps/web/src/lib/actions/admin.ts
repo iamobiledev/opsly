@@ -124,6 +124,85 @@ export async function createEscalationPolicyAction(formData: FormData) {
   revalidatePath("/escalation-policies");
 }
 
+export async function createIntegrationAction(formData: FormData) {
+  const admin = await requireAdmin();
+  const organizationId = admin.memberships[0]?.organizationId;
+  const serviceId = String(formData.get("serviceId") ?? "") || undefined;
+  const type = String(formData.get("type") ?? "generic_webhook") as "sentry" | "nightwatch" | "slack" | "generic_webhook";
+  const name = String(formData.get("name") ?? "");
+  const routingKey = slugify(String(formData.get("routingKey") ?? name));
+  const secretEnv = String(formData.get("secretEnv") ?? "").trim();
+
+  if (!organizationId || !name || !routingKey) {
+    return;
+  }
+
+  await prisma.integration.upsert({
+    where: { routingKey },
+    create: {
+      organizationId,
+      serviceId,
+      type,
+      name,
+      routingKey,
+      secretEncrypted: secretEnv ? `env:${secretEnv}` : undefined,
+      enabled: true
+    },
+    update: {
+      serviceId,
+      type,
+      name,
+      secretEncrypted: secretEnv ? `env:${secretEnv}` : undefined
+    }
+  });
+
+  revalidatePath("/integrations");
+}
+
+export async function createMaintenanceWindowAction(formData: FormData) {
+  await requireAdmin();
+  const serviceId = String(formData.get("serviceId") ?? "");
+  const startsAt = new Date(String(formData.get("startsAt") ?? ""));
+  const endsAt = new Date(String(formData.get("endsAt") ?? ""));
+  const reason = String(formData.get("reason") ?? "");
+
+  if (!serviceId || !reason || Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
+    return;
+  }
+
+  await prisma.maintenanceWindow.create({
+    data: { serviceId, startsAt, endsAt, reason }
+  });
+
+  revalidatePath(`/services/${serviceId}`);
+}
+
+export async function createSuppressionRuleAction(formData: FormData) {
+  await requireAdmin();
+  const serviceId = String(formData.get("serviceId") ?? "");
+  const name = String(formData.get("name") ?? "");
+  const routeStartsWith = String(formData.get("routeStartsWith") ?? "");
+  const environment = String(formData.get("environment") ?? "");
+
+  if (!serviceId || !name) {
+    return;
+  }
+
+  await prisma.suppressionRule.create({
+    data: {
+      serviceId,
+      name,
+      conditionsJson: {
+        ...(routeStartsWith ? { routeStartsWith } : {}),
+        ...(environment ? { environmentIn: [environment] } : {})
+      },
+      enabled: true
+    }
+  });
+
+  revalidatePath(`/services/${serviceId}`);
+}
+
 function slugify(value: string): string {
   return value
     .toLowerCase()

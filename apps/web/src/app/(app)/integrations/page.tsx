@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@opsly/db";
+import { createIntegrationAction } from "../../../lib/actions/admin";
 import { requireUser } from "../../../lib/auth";
 
 export default async function IntegrationsPage() {
@@ -10,6 +11,7 @@ export default async function IntegrationsPage() {
     include: { service: true },
     orderBy: { type: "asc" }
   });
+  const services = await prisma.service.findMany({ where: { organizationId }, orderBy: { name: "asc" } });
 
   return (
     <div>
@@ -20,6 +22,22 @@ export default async function IntegrationsPage() {
         <IntegrationCard title="Nightwatch" href="/integrations/nightwatch" body="Laravel backend exceptions, slow routes, and status changes." />
         <IntegrationCard title="Slack" href="/integrations/slack" body="Incident notifications, buttons, and slash commands." />
       </div>
+      <form action={createIntegrationAction} className="mt-8 grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 lg:grid-cols-3">
+        <input name="name" required placeholder="Integration name" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+        <input name="routingKey" placeholder="routing-key" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+        <select name="type" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2">
+          <option value="sentry">Sentry</option>
+          <option value="nightwatch">Nightwatch</option>
+          <option value="slack">Slack</option>
+          <option value="generic_webhook">Generic webhook</option>
+        </select>
+        <select name="serviceId" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2">
+          <option value="">No service</option>
+          {services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}
+        </select>
+        <input name="secretEnv" placeholder="Secret env var (e.g. SENTRY_WEBHOOK_SECRET)" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+        <button className="rounded-xl bg-cyan-400 px-4 py-2 font-semibold text-slate-950">Save integration</button>
+      </form>
       <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5">
         <h2 className="text-xl font-semibold">Configured sources</h2>
         <div className="mt-4 divide-y divide-white/10">

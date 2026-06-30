@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@opsly/db";
 import { SeverityBadge, StatusBadge } from "../../../../components/badges";
+import { createMaintenanceWindowAction, createSuppressionRuleAction } from "../../../../lib/actions/admin";
 import { requireUser } from "../../../../lib/auth";
 
 export default async function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -63,6 +64,20 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
           ))}
         </Panel>
         <Panel title="Suppression and maintenance">
+          <form action={createSuppressionRuleAction} className="mb-5 grid gap-3">
+            <input type="hidden" name="serviceId" value={service.id} />
+            <input name="name" required placeholder="Suppression rule name" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+            <input name="routeStartsWith" placeholder="Route starts with (e.g. /_debugbar/)" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+            <input name="environment" placeholder="Environment (optional)" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+            <button className="rounded-xl bg-cyan-400 px-4 py-2 font-semibold text-slate-950">Add suppression</button>
+          </form>
+          <form action={createMaintenanceWindowAction} className="mb-5 grid gap-3">
+            <input type="hidden" name="serviceId" value={service.id} />
+            <input name="reason" required placeholder="Maintenance reason" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+            <input name="startsAt" required type="datetime-local" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+            <input name="endsAt" required type="datetime-local" className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2" />
+            <button className="rounded-xl bg-cyan-400 px-4 py-2 font-semibold text-slate-950">Add maintenance</button>
+          </form>
           <div className="space-y-3">
             {service.suppressionRules.map((rule) => (
               <div key={rule.id} className="rounded-xl bg-slate-900/80 p-3 text-sm">{rule.name}</div>
