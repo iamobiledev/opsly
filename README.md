@@ -198,7 +198,9 @@ npm run typecheck
 npm run build       # emit dist/ (production: node dist/index.js)
 ```
 
-Requires Node ≥ 22.5 (uses the built-in `node:sqlite`).
+Requires Node 22.x, ≥ 22.5 (uses the built-in `node:sqlite`). Pinned to the 22 line so
+deploy platforms that auto-resolve `engines` (e.g. Vercel) build with the Node version the
+app is tested on.
 
 ### Layout
 
