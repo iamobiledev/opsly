@@ -2,6 +2,10 @@ export interface Config {
   port: number;
   dbPath: string;
   apiToken: string | null;
+  /** Extra bearer token accepted only by the escalation-sweep endpoint (sent by Vercel Cron). */
+  cronSecret: string | null;
+  /** Ensure the demo dataset exists at startup (for ephemeral hosts where the DB starts empty). */
+  seedOnStart: boolean;
   baseUrl: string;
   slack: {
     botToken: string;
@@ -20,8 +24,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 
   return {
     port: parseInt(env.PORT || '3000', 10),
-    dbPath: env.DB_PATH || './data/opsly.db',
+    // Vercel's deployment filesystem is read-only; /tmp is the only writable path.
+    dbPath: env.DB_PATH || (env.VERCEL ? '/tmp/opsly.db' : './data/opsly.db'),
     apiToken: env.API_TOKEN?.trim() || null,
+    cronSecret: env.CRON_SECRET?.trim() || null,
+    seedOnStart: ['1', 'true', 'yes'].includes((env.SEED_ON_START || '').trim().toLowerCase()),
     baseUrl: (env.BASE_URL || `http://localhost:${env.PORT || '3000'}`).replace(/\/+$/, ''),
     slack: slackConfigured
       ? {

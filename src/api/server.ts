@@ -1,5 +1,6 @@
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import { fileURLToPath } from 'node:url';
+import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { DateTime } from 'luxon';
 import type { AppCtx } from '../context.js';
@@ -12,7 +13,11 @@ import * as incidents from '../domain/incidents.js';
 import { ingestEvent } from '../domain/events.js';
 import { whoIsOnCall, upcomingShiftsForUser } from '../domain/oncall.js';
 
-const WEB_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'web');
+// Module-relative resolution works when running from src/ (tsx) or dist/ (tsc);
+// bundled serverless functions (Vercel) lose that layout, so fall back to the
+// project root, where vercel.json's includeFiles places web/.
+const MODULE_WEB_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'web');
+const WEB_DIR = existsSync(MODULE_WEB_DIR) ? MODULE_WEB_DIR : join(process.cwd(), 'web');
 
 export function createApiServer(ctx: AppCtx): Express {
   const app = express();
@@ -31,6 +36,26 @@ export function createApiServer(ctx: AppCtx): Express {
       next(err);
     }
   });
+
+  // Escalation sweep for deployments without a long-lived process: an external
+  // scheduler (e.g. Vercel Cron, which sends CRON_SECRET as a bearer token and
+  // only issues GET) calls this instead of the in-process engine. Accepts
+  // CRON_SECRET or the API token; open when neither is configured, matching
+  // the rest of the API.
+  const runSweep = (req: Request, res: Response) => {
+    const accepted = [ctx.config.cronSecret, ctx.config.apiToken].filter((t): t is string => Boolean(t));
+    if (accepted.length > 0) {
+      const header = req.headers.authorization || '';
+      const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+      if (!accepted.includes(token)) {
+        res.status(401).json({ error: 'Missing or invalid sweep token' });
+        return;
+      }
+    }
+    res.json({ escalated: incidents.sweepEscalations(ctx) });
+  };
+  app.get('/api/v1/escalation-sweep', runSweep);
+  app.post('/api/v1/escalation-sweep', runSweep);
 
   // Everything else under /api requires the bearer token when one is configured.
   app.use('/api', (req: Request, res: Response, next: NextFunction) => {

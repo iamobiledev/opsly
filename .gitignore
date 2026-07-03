@@ -6,5 +6,6 @@ dist/
 *.db-shm
 .env
 .env.local
+.vercel/
 data/
 coverage/
