@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Opsly — incident management</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📟</text></svg>" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">📟 Opsly</div>
+    <nav>
+      <a href="#/incidents" data-nav="incidents">🚨 Incidents</a>
+      <a href="#/services" data-nav="services">🛠️ Services</a>
+      <a href="#/schedules" data-nav="schedules">🗓️ Schedules</a>
+      <a href="#/policies" data-nav="policies">📣 Escalation</a>
+      <a href="#/users" data-nav="users">👥 Users</a>
+      <a href="#/help" data-nav="help">🛟 Setup &amp; API</a>
+    </nav>
+    <div class="sidebar-foot">
+      <div id="oncall-mini"></div>
+    </div>
+  </aside>
+  <main id="main">
+    <div class="loading">Loading…</div>
+  </main>
+  <div id="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
