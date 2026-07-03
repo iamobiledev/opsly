@@ -153,6 +153,41 @@ All via environment variables (see [`.env.example`](./.env.example)):
 | `SLACK_BOT_TOKEN` / `SLACK_APP_TOKEN` / `SLACK_SIGNING_SECRET` | _(unset)_ | Enable Slack |
 | `SLACK_DEFAULT_CHANNEL` | _(unset)_ | Fallback channel for services without one |
 | `ESCALATION_SWEEP_SECONDS` | `15` | Escalation engine tick |
+| `CRON_SECRET` | _(unset)_ | Extra bearer token accepted only by `/api/v1/escalation-sweep` (sent by Vercel Cron) |
+| `SEED_ON_START` | _(unset)_ | `1` = ensure the demo dataset exists at startup (idempotent) |
+
+## Deploy to Vercel
+
+The repo is Vercel-ready: [`vercel.json`](./vercel.json) runs the whole app — dashboard, REST
+API, events endpoint — as a single serverless function ([`api/index.ts`](./api/index.ts)), and
+a Vercel Cron entry drives escalations by calling `GET /api/v1/escalation-sweep` every minute
+in place of the in-process engine.
+
+1. Import the repo at [vercel.com/new](https://vercel.com/new) — no framework or build
+   settings needed; `vercel.json` covers everything.
+2. Set environment variables (Project → Settings → Environment Variables):
+   - `API_TOKEN` — **recommended**: the deployment is on the public internet, and this makes
+     the REST API + dashboard require a bearer token.
+   - `CRON_SECRET` — Vercel Cron sends it automatically as a bearer token, and the sweep
+     endpoint then rejects unauthenticated callers.
+   - `SEED_ON_START=1` — optional: recreates the demo data whenever the database starts empty.
+3. Deploy. The dashboard is at the deployment URL; `POST /api/v1/events` works as usual.
+
+Know the serverless trade-offs — this deployment is a **demo/evaluation**, not a durable pager:
+
+- **Storage is ephemeral.** Serverless functions have no persistent disk, so SQLite lives in
+  `/tmp`: each instance has its own database, wiped on cold starts. Nothing survives.
+- **Slack is disabled.** Socket Mode needs a persistent WebSocket connection, which
+  serverless functions can't hold. The API + dashboard still work fully, as in local
+  no-Slack mode.
+- **Escalations advance at the cron cadence, not every 15s.** Per-minute crons need a paid
+  Vercel plan; Hobby crons only run about once a day. On Hobby, point any external scheduler
+  (GitHub Actions schedule, cron-job.org, an uptime pinger) at
+  `GET /api/v1/escalation-sweep` with `Authorization: Bearer $CRON_SECRET`.
+
+For the real thing — durable SQLite, Slack Socket Mode, 15-second escalations — run the one
+process on any persistent host (Fly.io, Railway, Render, a VPS, Docker):
+`npm ci && npm run seed && npm start`.
 
 ## Development
 

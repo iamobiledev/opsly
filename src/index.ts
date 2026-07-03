@@ -3,11 +3,17 @@ import { createDb } from './db/index.js';
 import { consoleNotifier, type AppCtx } from './context.js';
 import { createApiServer } from './api/server.js';
 import { startEscalationEngine } from './engine/escalation.js';
+import { seedDemoData } from './seed-data.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
   const db = createDb(config.dbPath);
   const ctx: AppCtx = { db, config, notifier: consoleNotifier };
+
+  if (config.seedOnStart) {
+    seedDemoData(ctx);
+    console.log('[seed] demo data ensured (SEED_ON_START)');
+  }
 
   if (config.slack) {
     const { startSlack } = await import('./slack/app.js');
